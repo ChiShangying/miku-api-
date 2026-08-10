@@ -2,9 +2,10 @@
 import json
 import os
 from dataclasses import dataclass, field, asdict
-from pathlib import Path
 
-CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.json"
+from .paths import writable_dir
+
+CONFIG_PATH = writable_dir() / "config.json"
 
 # 语言代码 -> (显示名, OCR 模型名)
 LANGS = {

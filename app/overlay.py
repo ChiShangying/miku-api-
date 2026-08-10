@@ -13,7 +13,7 @@ from html import escape
 from PySide6.QtCore import Qt, QPoint, Signal
 from PySide6.QtGui import QColor, QAction, QTextOption
 from PySide6.QtWidgets import (
-    QWidget, QFrame, QTextBrowser, QLabel, QVBoxLayout, QHBoxLayout,
+    QWidget, QFrame, QTextBrowser, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
     QMenu, QApplication,
 )
 
@@ -80,12 +80,21 @@ class TranslationOverlay(QWidget):
         title_row = QHBoxLayout()
         self.title_label = QLabel("✦ Miku 译文 (≧▽≦)♪")
         self.title_label.setObjectName("title")
-        hint = QLabel("滚轮回看 ｜ 拖角调宽 ｜ 右键退出")
+        hint = QLabel("滚轮回看 ｜ 右键退出")
         hint.setObjectName("title")
         hint.setStyleSheet("color:#55777B;")
         title_row.addWidget(self.title_label)
         title_row.addStretch(1)
         title_row.addWidget(hint)
+        # 关闭输出框按钮：只关闭本框，应用继续运行
+        self.overlay_close_btn = QPushButton("×")
+        self.overlay_close_btn.setFixedSize(26, 26)
+        self.overlay_close_btn.setStyleSheet(
+            "QPushButton { background:transparent; border:none; color:#9BE8E2;"
+            " font-size:14px; font-family:'Microsoft YaHei'; border-radius:6px; }"
+            "QPushButton:hover { background-color:#E57373; color:#FFFFFF; }")
+        self.overlay_close_btn.clicked.connect(self.hide)
+        title_row.addWidget(self.overlay_close_btn)
         lay.addLayout(title_row)
 
         self.browser = QTextBrowser()

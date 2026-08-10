@@ -25,14 +25,15 @@ from .settings import SettingsDialog
 from .translator import DeepSeekTranslator
 
 log = logging.getLogger(__name__)
-ASSETS = Path(__file__).resolve().parent.parent / "assets"
+from .paths import asset_path
+ASSETS = Path(__file__).resolve().parent.parent / "assets"  # 仅开发期兜底，运行用 asset_path()
 
 QSS = """
-QWidget { font-family:"Microsoft YaHei"; font-size:13px; }
-QLabel#title { color:#7FF4E8; font-size:18px; font-weight:bold; }
-QLabel#subtitle { color:#A8CDD2; font-size:11px; }
-QLabel#status { color:#9BE8E2; font-size:12px; }
-QLabel#formLabel { color:#9BE8E2; font-size:12px; }
+QWidget { font-family:"YouYuan","Microsoft YaHei"; font-size:14px; }
+QLabel#title { color:#7FF4E8; font-size:22px; font-weight:bold; }
+QLabel#subtitle { color:#A8CDD2; font-size:12px; }
+QLabel#status { color:#9BE8E2; font-size:13px; }
+QLabel#formLabel { color:#9BE8E2; font-size:13px; }
 QFrame#card { background-color:rgba(10, 26, 30, 195); border:1px solid #2A6B6E; border-radius:12px; }
 QPushButton { background-color:rgba(14, 63, 71, 220); color:#D8F7F4;
               border:1px solid #39C5BB; border-radius:8px; padding:8px 18px; }
@@ -97,10 +98,10 @@ class MainWindow(QWidget):
         self.cfg = cfg
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)  # 无边框：标题栏融入界面
         self.setWindowTitle("Miku 屏幕翻译")
-        self.setWindowIcon(QIcon(str(ASSETS / "miku.png")))
+        self.setWindowIcon(QIcon(str(asset_path("miku.png"))))
         self.setFixedSize(680, 500)
 
-        self._wallpaper = QPixmap(str(ASSETS / "miku_wallpaper.png"))
+        self._wallpaper = QPixmap(str(asset_path("miku_wallpaper.png")))
 
         self.ocr = OcrEngine()
         self.translator = DeepSeekTranslator(
@@ -111,6 +112,7 @@ class MainWindow(QWidget):
         self._selector: RegionSelector | None = None
         self._region_frame: RegionFrame | None = None
         self._drag_offset: QPoint | None = None
+        self._overlay_placed = False   # 输出框是否已定位过（之后位置只由用户拖动决定）
 
         # 全局热键（可配置）
         mod, key = PRESET_HOTKEYS.get(cfg.hotkey, PRESET_HOTKEYS["Ctrl+1"])
@@ -138,7 +140,7 @@ class MainWindow(QWidget):
         tb.setContentsMargins(14, 0, 6, 0)
         tb_label = QLabel("✦ Miku 屏幕翻译 (≧▽≦)♪")
         tb_label.setObjectName("title")
-        tb_label.setStyleSheet("font-size:14px; color:#7FF4E8;")
+        tb_label.setStyleSheet("font-size:16px; color:#7FF4E8;")
         tb.addWidget(tb_label)
         tb.addStretch(1)
         self.settings_btn = QPushButton("设置")
@@ -159,13 +161,13 @@ class MainWindow(QWidget):
         # 左侧：初音立绘 + 卖萌标语（整体与右侧卡片顶对齐）
         left = QVBoxLayout()
         left.setSpacing(8)
-        art = MikuArt(QPixmap(str(ASSETS / "miku_cutout.png")), 220, 360, crop_shift_y=-20)
+        art = MikuArt(QPixmap(str(asset_path("miku_cutout.png"))), 240, 280, crop_shift_y=0)
         left.addWidget(art, alignment=Qt.AlignmentFlag.AlignTop)
         moe1 = QLabel("「屏幕翻译，交给未来酱！」(≧▽≦)")
         moe2 = QLabel("「看不懂的语言，就交给我吧♪」")
         for lb in (moe1, moe2):
             lb.setStyleSheet(
-                "color:#A8F0E8; font-size:12px; font-family:'Microsoft YaHei';"
+                "color:#A8F0E8; font-size:13px; font-family:'YouYuan','Microsoft YaHei';"
                 "background-color:rgba(8, 22, 26, 140); border-radius:8px; padding:3px 8px;")
             lb.setAlignment(Qt.AlignmentFlag.AlignCenter)
             left.addWidget(lb)
@@ -329,8 +331,17 @@ class MainWindow(QWidget):
         self.show()
         self._refresh_region_label()
         self._show_region_frame(region)
-        self._position_overlay(region)
+        # 输出框：首次框选定位一次，之后保持用户拖动的位置
+        self._ensure_overlay_placed(region)
         self.overlay.set_text("", "区域已框选，点框上“▶ 开始翻译”")
+
+    def _ensure_overlay_placed(self, region: Region | None):
+        """输出框只定位一次；后续框选/区域调整不再移动它。"""
+        if not self._overlay_placed:
+            if region is not None and region.is_set():
+                self._position_overlay(region)
+            self._overlay_placed = True
+        self.overlay.show()
 
     def _on_region_cancelled(self):
         self._selector.close()
@@ -351,12 +362,13 @@ class MainWindow(QWidget):
             self._region_frame.show()
 
     def _on_region_changed(self, region: Region):
+        """区域框被拖动/缩放：只同步配置，输出框位置不受影响。"""
         self.cfg.region = region
         save_config(self.cfg)
         self._refresh_region_label()
-        self._position_overlay(region)
 
     def _on_region_frame_close(self):
+        """关闭区域框：停止翻译并清空区域；输出框保留（由自身按钮/退出关闭）。"""
         if self.controller.is_running():
             self._on_stop()
         if self._region_frame:
@@ -365,7 +377,6 @@ class MainWindow(QWidget):
         self.cfg.region = Region()
         save_config(self.cfg)
         self._refresh_region_label()
-        self.overlay.hide()
 
     def _refresh_region_label(self):
         r = self.cfg.region
@@ -411,8 +422,7 @@ class MainWindow(QWidget):
         if isinstance(self.cfg.region, dict):
             self.cfg.region = Region(self.cfg.region.get("x"), self.cfg.region.get("y"),
                                      self.cfg.region.get("w"), self.cfg.region.get("h"))
-        if self.cfg.region.is_set():
-            self._position_overlay(self.cfg.region)
+        self._ensure_overlay_placed(self.cfg.region if self.cfg.region.is_set() else None)
         self.controller.start()
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
