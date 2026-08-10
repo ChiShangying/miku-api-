@@ -62,11 +62,13 @@ class MikuArt(QWidget):
         path.addRoundedRect(QRectF(self.rect()), 18, 18)
         p.setClipPath(path)
         # 等比放大填充（居中裁剪，不变形）
+        # 注意：drawPixmap 三参重载的 sourceRect 必须用 QRect，
+        # 传 QRectF 会重载解析失败抛异常，导致整个 paintEvent 被跳过
         scaled = self._pix.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding,
                                   Qt.TransformationMode.SmoothTransformation)
-        src = QRectF((scaled.width() - self.width()) / 2,
-                     (scaled.height() - self.height()) / 2,
-                     self.width(), self.height())
+        src = QRect(round((scaled.width() - self.width()) / 2),
+                    round((scaled.height() - self.height()) / 2),
+                    self.width(), self.height())
         p.drawPixmap(self.rect(), scaled, src)
         # 底部青色光晕
         grad = QLinearGradient(0, self.height() * 0.55, 0, self.height())
