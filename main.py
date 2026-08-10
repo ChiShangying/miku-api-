@@ -5,7 +5,9 @@
 """
 import logging
 import sys
+from pathlib import Path
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from app.config import load_config
@@ -17,6 +19,7 @@ def main() -> int:
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     app = QApplication(sys.argv)
     app.setApplicationName("Miku屏幕翻译")
+    app.setWindowIcon(QIcon(str(Path(__file__).resolve().parent / "assets" / "miku.png")))
 
     cfg = load_config()
     win = MainWindow(cfg)

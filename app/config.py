@@ -39,6 +39,7 @@ class AppConfig:
     overlay_opacity: float = 0.92     # 悬浮窗不透明度
     overlay_w: int = 480              # 悬浮窗宽度（可四角拖动调整）
     overlay_h: int = 300              # 悬浮窗高度
+    hotkey: str = "Ctrl+1"            # 全局快捷键（PRESET_HOTKEYS 中的显示名）
 
     @property
     def ocr_lang(self) -> str:
