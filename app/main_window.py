@@ -60,9 +60,12 @@ QSpinBox::up-button, QSpinBox::down-button { background-color:#0E3F47; border:no
 class MikuArt(QWidget):
     """初音立绘：圆角裁剪 + 底部青色光晕，自然融入。"""
 
-    def __init__(self, pix: QPixmap, width: int = 210, height: int = 330, parent=None):
+    def __init__(self, pix: QPixmap, width: int = 210, height: int = 330,
+                 crop_shift_y: int = -25, parent=None):
+        """crop_shift_y: 裁剪窗口垂直偏移（负=上移，让主体头部上移露出）。"""
         super().__init__(parent)
         self._pix = pix
+        self._crop_shift_y = crop_shift_y
         self.setFixedSize(width, height)
 
     def paintEvent(self, _):
@@ -76,8 +79,9 @@ class MikuArt(QWidget):
         # 注意：drawPixmap 三参重载的 sourceRect 必须用 QRect（QRectF 会重载解析失败）
         scaled = self._pix.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding,
                                   Qt.TransformationMode.SmoothTransformation)
-        src = QRect(round((scaled.width() - self.width()) / 2),
-                    round((scaled.height() - self.height()) / 2),
+        src_y = min(max(round((scaled.height() - self.height()) / 2 + self._crop_shift_y), 0),
+                    scaled.height() - self.height())
+        src = QRect(round((scaled.width() - self.width()) / 2), src_y,
                     self.width(), self.height())
         p.drawPixmap(self.rect(), scaled, src)
         # 底部青色光晕
@@ -137,9 +141,9 @@ class MainWindow(QWidget):
         tb_label.setStyleSheet("font-size:14px; color:#7FF4E8;")
         tb.addWidget(tb_label)
         tb.addStretch(1)
-        self.settings_btn = QPushButton("⚙ 设置")
+        self.settings_btn = QPushButton("设置")
         self.min_btn = QPushButton("—")
-        self.close_btn = QPushButton("✕")
+        self.close_btn = QPushButton("×")
         for b in (self.settings_btn, self.min_btn, self.close_btn):
             b.setObjectName("titleBtn" if b is not self.close_btn else "titleBtnClose")
             b.setFixedSize(52, 30)
@@ -152,9 +156,20 @@ class MainWindow(QWidget):
         content.setContentsMargins(18, 14, 18, 16)
         content.setSpacing(18)
 
-        # 左侧：初音立绘
-        art = MikuArt(QPixmap(str(ASSETS / "miku_cutout.png")), 220, 380)
-        content.addWidget(art, alignment=Qt.AlignmentFlag.AlignTop)
+        # 左侧：初音立绘 + 卖萌标语（整体与右侧卡片顶对齐）
+        left = QVBoxLayout()
+        left.setSpacing(8)
+        art = MikuArt(QPixmap(str(ASSETS / "miku_cutout.png")), 220, 360, crop_shift_y=-20)
+        left.addWidget(art, alignment=Qt.AlignmentFlag.AlignTop)
+        moe1 = QLabel("「屏幕翻译，交给未来酱！」(≧▽≦)")
+        moe2 = QLabel("「看不懂的语言，就交给我吧♪」")
+        for lb in (moe1, moe2):
+            lb.setStyleSheet(
+                "color:#A8F0E8; font-size:12px; font-family:'Microsoft YaHei';"
+                "background-color:rgba(8, 22, 26, 140); border-radius:8px; padding:3px 8px;")
+            lb.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            left.addWidget(lb)
+        content.addLayout(left)
 
         # 右侧：设置卡片
         card = QFrame()

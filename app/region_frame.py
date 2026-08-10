@@ -68,7 +68,7 @@ class RegionFrame(QWidget):
 
         self.start_btn = QPushButton("▶ 开始翻译")
         self.stop_btn = QPushButton("■ 停止")
-        self.close_btn = QPushButton("✕ 关闭")
+        self.close_btn = QPushButton("× 关闭")
         self.start_btn.clicked.connect(self.start_requested)
         self.stop_btn.clicked.connect(self.stop_requested)
         self.close_btn.clicked.connect(self.close_requested)
