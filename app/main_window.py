@@ -28,36 +28,41 @@ log = logging.getLogger(__name__)
 from .paths import asset_path
 ASSETS = Path(__file__).resolve().parent.parent / "assets"  # 仅开发期兜底，运行用 asset_path()
 
-QSS = """
-QWidget { font-family:"YouYuan","Microsoft YaHei"; font-size:14px; color:#D8F7F4; }
-QLabel#title { font-family:"STHupo","YouYuan","Microsoft YaHei"; color:#7FF4E8;
-               font-size:24px; font-weight:bold; }
-QLabel#subtitle { color:#A8CDD2; font-size:12px; }
-QLabel#status { color:#9BE8E2; font-size:13px; }
-QLabel#formLabel { font-family:"YouYuan","Microsoft YaHei"; font-size:13px;
-                   color:#B8F2EC; font-weight:bold; }
-QFrame#card { background-color:rgba(10, 26, 30, 200); border:1px solid #2A6B6E; border-radius:14px; }
-QPushButton { font-family:"STHupo","YouYuan","Microsoft YaHei"; font-size:15px;
+# 字体策略：标题/按钮用华文琥珀（粗圆可爱），缺失时回退黑体（也够粗）；
+# 正文幼圆，回退雅黑。所有符号只用这些字体都支持的（▶ ■ ★ ♪ ≧▽≦），不用 emoji。
+FONT_HEAVY = '"STHupo","SimHei","Microsoft YaHei"'
+FONT_BODY = '"YouYuan","Microsoft YaHei"'
+
+QSS = f"""
+QWidget {{ font-family:{FONT_BODY}; font-size:14px; color:#D8F7F4; }}
+QLabel#title {{ font-family:{FONT_HEAVY}; color:#7FF4E8; font-size:24px; }}
+QLabel#subtitle {{ color:#A8CDD2; font-size:12px; }}
+QLabel#status {{ color:#9BE8E2; font-size:13px; }}
+QLabel#formLabel {{ font-family:{FONT_BODY}; font-size:13px;
+                   color:#B8F2EC; font-weight:bold; }}
+QFrame#card {{ background-color:rgba(10, 26, 30, 200); border:1px solid #2A6B6E; border-radius:14px; }}
+QPushButton {{ font-family:{FONT_HEAVY}; font-size:15px;
               background-color:rgba(14, 63, 71, 230); color:#D8F7F4;
-              border:2px solid #39C5BB; border-radius:10px; padding:8px 16px; }
-QPushButton:hover { background-color:#39C5BB; color:#06282C; }
-QPushButton:pressed { background-color:#00A0B0; }
-QPushButton:disabled { background-color:#1A2A2E; color:#55777B; border-color:#2A4A4E; }
-QPushButton#primary { background-color:#39C5BB; color:#06282C; font-weight:bold; }
-QPushButton#primary:hover { background-color:#5FE0D5; }
-QPushButton#danger { background-color:rgba(92, 46, 46, 230); border-color:#E57373; }
-QPushButton#danger:hover { background-color:#E57373; color:#2B0A0A; }
-QPushButton#titleBtn { background:transparent; border:none; border-radius:6px;
-                       color:#9BE8E2; font-size:14px; padding:2px 10px; }
-QPushButton#titleBtn:hover { background-color:rgba(57,197,187,90); color:#FFFFFF; }
-QPushButton#titleBtnClose:hover { background-color:#E57373; color:#FFFFFF; }
-QLineEdit, QComboBox, QSpinBox { font-family:"YouYuan","Microsoft YaHei"; font-size:13px;
-    background-color:rgba(13, 31, 35, 230); border:1.5px solid #2A6B6E; border-radius:8px;
-    padding:6px 10px; color:#EAFBF8; selection-background-color:#39C5BB; }
-QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border-color:#39C5BB; }
-QComboBox QAbstractItemView { background-color:#0D1F23; border:1px solid #39C5BB;
-    selection-background-color:#39C5BB; selection-color:#06282C; }
-QSpinBox::up-button, QSpinBox::down-button { background-color:#0E3F47; border:none; width:18px; }
+              border:2px solid #39C5BB; border-radius:10px; padding:8px 14px; }}
+QPushButton:hover {{ background-color:#39C5BB; color:#06282C; }}
+QPushButton:pressed {{ background-color:#00A0B0; }}
+QPushButton:disabled {{ background-color:#1A2A2E; color:#55777B; border-color:#2A4A4E; }}
+QPushButton#primary {{ background-color:#39C5BB; color:#06282C; }}
+QPushButton#primary:hover {{ background-color:#5FE0D5; }}
+QPushButton#danger {{ background-color:rgba(92, 46, 46, 230); border-color:#E57373; }}
+QPushButton#danger:hover {{ background-color:#E57373; color:#2B0A0A; }}
+QPushButton#titleBtn {{ background:transparent; border:none; border-radius:6px;
+                       color:#9BE8E2; font-size:14px; padding:2px 10px; }}
+QPushButton#titleBtn:hover {{ background-color:rgba(57,197,187,90); color:#FFFFFF; }}
+QPushButton#titleBtnClose:hover {{ background-color:#E57373; color:#FFFFFF; }}
+QLineEdit, QComboBox, QSpinBox {{ font-family:{FONT_BODY}; font-size:13px;
+    background-color:rgba(13, 31, 35, 230); border:2px solid #2A6B6E; border-radius:8px;
+    padding:6px 10px; color:#EAFBF8; selection-background-color:#39C5BB; }}
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus {{ border-color:#39C5BB; }}
+QLineEdit:hover, QComboBox:hover, QSpinBox:hover {{ border-color:#3E8A90; }}
+QComboBox QAbstractItemView {{ background-color:#0D1F23; border:1px solid #39C5BB;
+    selection-background-color:#39C5BB; selection-color:#06282C; }}
+QSpinBox::up-button, QSpinBox::down-button {{ background-color:#0E3F47; border:none; width:18px; }}
 """
 
 
@@ -102,7 +107,7 @@ class MainWindow(QWidget):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)  # 无边框：标题栏融入界面
         self.setWindowTitle("Miku 屏幕翻译")
         self.setWindowIcon(QIcon(str(asset_path("miku.png"))))
-        self.setFixedSize(680, 500)
+        self.setFixedSize(680, 540)  # 加高，防止卡片底部内容被裁剪
 
         self._wallpaper = QPixmap(str(asset_path("miku_wallpaper.png")))
 
@@ -141,9 +146,9 @@ class MainWindow(QWidget):
             "QFrame { background-color:rgba(8, 22, 26, 210); border:none; }")
         tb = QHBoxLayout(title_bar)
         tb.setContentsMargins(14, 0, 6, 0)
-        tb_label = QLabel("✦ Miku 屏幕翻译 (≧▽≦)♪")
+        tb_label = QLabel("★ Miku 屏幕翻译 (≧▽≦)♪")
         tb_label.setObjectName("title")
-        tb_label.setStyleSheet("font-family:'STHupo','YouYuan'; font-size:16px; color:#7FF4E8;")
+        tb_label.setStyleSheet(f"font-family:{FONT_HEAVY}; font-size:16px; color:#7FF4E8;")
         tb.addWidget(tb_label)
         tb.addStretch(1)
         self.settings_btn = QPushButton("设置")
@@ -170,8 +175,8 @@ class MainWindow(QWidget):
         moe2 = QLabel("「看不懂的语言，就交给我吧♪」")
         for lb in (moe1, moe2):
             lb.setStyleSheet(
-                "color:#A8F0E8; font-size:13px; font-family:'YouYuan','Microsoft YaHei';"
-                "background-color:rgba(8, 22, 26, 140); border-radius:8px; padding:3px 8px;")
+                f"color:#A8F0E8; font-size:17px; font-family:{FONT_HEAVY};"
+                "background-color:rgba(8, 22, 26, 150); border-radius:10px; padding:5px 10px;")
             lb.setAlignment(Qt.AlignmentFlag.AlignCenter)
             left.addWidget(lb)
         content.addLayout(left)
@@ -212,6 +217,7 @@ class MainWindow(QWidget):
         lang_row.addStretch(1)
         for c in (self.src_combo, self.tgt_combo):
             c.setFixedHeight(34)
+            c.setMinimumWidth(118)  # 两个下拉等宽，避免右侧参差
         form.addRow(self._label("语言"), lang_row)
 
         self.interval_spin = QSpinBox()
@@ -236,7 +242,7 @@ class MainWindow(QWidget):
         # 按钮（等宽对齐）
         btns = QHBoxLayout()
         btns.setSpacing(10)
-        self.select_btn = QPushButton("📌 框选区域")
+        self.select_btn = QPushButton("框选区域")
         self.start_btn = QPushButton("▶ 开始翻译")
         self.start_btn.setObjectName("primary")
         self.stop_btn = QPushButton("■ 停止")
@@ -244,13 +250,14 @@ class MainWindow(QWidget):
         self.stop_btn.setEnabled(False)
         for b in (self.select_btn, self.start_btn, self.stop_btn):
             b.setFixedHeight(38)
-            b.setFixedWidth(104)  # 等宽，整齐
+            b.setFixedWidth(128)  # 等宽（琥珀字体较宽，防文字挤压）
             btns.addWidget(b)
         btns.addStretch(1)
         form.addRow(self._label("操作"), btns)
 
         self.status_label = QLabel("就绪：填写 API Key 并框选区域后开始 (＾▽＾)")
         self.status_label.setObjectName("status")
+        self.status_label.setWordWrap(True)  # 长错误信息自动换行，防止撑宽卡片
         form.addRow("", self.status_label)
 
         content.addWidget(card, 1)
