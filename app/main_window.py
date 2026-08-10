@@ -11,7 +11,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QWidget, QApplication, QLabel, QLineEdit, QComboBox, QSpinBox, QPushButton,
-    QFormLayout, QVBoxLayout, QHBoxLayout, QFrame, QMessageBox,
+    QFormLayout, QVBoxLayout, QHBoxLayout, QFrame, QMessageBox, QSizePolicy,
 )
 
 from .config import AppConfig, Region, save_config, LANGS
@@ -38,9 +38,11 @@ QWidget {{ font-family:{FONT_BODY}; font-size:14px; color:#D8F7F4; }}
 QLabel#title {{ font-family:{FONT_HEAVY}; color:#7FF4E8; font-size:24px; }}
 QLabel#subtitle {{ color:#A8CDD2; font-size:12px; }}
 QLabel#status {{ color:#9BE8E2; font-size:13px; }}
-QLabel#formLabel {{ font-family:{FONT_BODY}; font-size:13px;
+QLabel#formLabel {{ font-family:{FONT_BODY}; font-size:15px;
                    color:#B8F2EC; font-weight:bold; }}
 QFrame#card {{ background-color:rgba(10, 26, 30, 200); border:1px solid #2A6B6E; border-radius:14px; }}
+QLabel#sectionTitle {{ font-family:{FONT_HEAVY}; font-size:18px; color:#7FF4E8;
+    border-bottom:2px solid rgba(57,197,187,130); padding-bottom:4px; }}
 QPushButton {{ font-family:{FONT_HEAVY}; font-size:15px;
               background-color:rgba(14, 63, 71, 230); color:#D8F7F4;
               border:2px solid #39C5BB; border-radius:10px; padding:8px 14px; }}
@@ -55,14 +57,18 @@ QPushButton#titleBtn {{ background:transparent; border:none; border-radius:6px;
                        color:#9BE8E2; font-size:14px; padding:2px 10px; }}
 QPushButton#titleBtn:hover {{ background-color:rgba(57,197,187,90); color:#FFFFFF; }}
 QPushButton#titleBtnClose:hover {{ background-color:#E57373; color:#FFFFFF; }}
-QLineEdit, QComboBox, QSpinBox {{ font-family:{FONT_BODY}; font-size:13px;
-    background-color:rgba(13, 31, 35, 230); border:2px solid #2A6B6E; border-radius:8px;
-    padding:6px 10px; color:#EAFBF8; selection-background-color:#39C5BB; }}
+QLineEdit, QComboBox, QSpinBox {{ font-family:{FONT_BODY}; font-size:15px;
+    background-color:rgba(13, 31, 35, 230); border:2px solid #2A6B6E; border-radius:10px;
+    padding:6px 12px; color:#EAFBF8; selection-background-color:#39C5BB; }}
 QLineEdit:focus, QComboBox:focus, QSpinBox:focus {{ border-color:#39C5BB; }}
 QLineEdit:hover, QComboBox:hover, QSpinBox:hover {{ border-color:#3E8A90; }}
+QComboBox::drop-down {{ border:none; width:28px; }}
+QComboBox::down-arrow {{ width:0; height:0; border-left:5px solid transparent;
+    border-right:5px solid transparent; border-top:7px solid #39C5BB; margin-right:4px; }}
 QComboBox QAbstractItemView {{ background-color:#0D1F23; border:1px solid #39C5BB;
     selection-background-color:#39C5BB; selection-color:#06282C; }}
-QSpinBox::up-button, QSpinBox::down-button {{ background-color:#0E3F47; border:none; width:18px; }}
+QSpinBox::up-button, QSpinBox::down-button {{ background-color:#0E3F47; border:none; width:20px; }}
+QSpinBox::up-arrow, QSpinBox::down-arrow {{ width:0; height:0; }}
 """
 
 
@@ -81,6 +87,8 @@ class MikuArt(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        # 整体轻微透明，更通透地融入壁纸（无渐变叠加）
+        p.setOpacity(0.92)
         path = QPainterPath()
         path.addRoundedRect(QRectF(self.rect()), 18, 18)
         p.setClipPath(path)
@@ -93,11 +101,6 @@ class MikuArt(QWidget):
         src = QRect(round((scaled.width() - self.width()) / 2), src_y,
                     self.width(), self.height())
         p.drawPixmap(self.rect(), scaled, src)
-        # 底部青色光晕
-        grad = QLinearGradient(0, self.height() * 0.55, 0, self.height())
-        grad.setColorAt(0, QColor(57, 197, 187, 0))
-        grad.setColorAt(1, QColor(57, 197, 187, 90))
-        p.fillRect(self.rect(), grad)
 
 
 class MainWindow(QWidget):
@@ -107,7 +110,7 @@ class MainWindow(QWidget):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)  # 无边框：标题栏融入界面
         self.setWindowTitle("Miku 屏幕翻译")
         self.setWindowIcon(QIcon(str(asset_path("miku.png"))))
-        self.setFixedSize(680, 540)  # 加高，防止卡片底部内容被裁剪
+        self.setFixedSize(720, 540)  # 加宽，给右侧卡片充足空间（按钮可等宽铺满）
 
         self._wallpaper = QPixmap(str(asset_path("miku_wallpaper.png")))
 
@@ -169,36 +172,45 @@ class MainWindow(QWidget):
         # 左侧：初音立绘 + 卖萌标语（整体与右侧卡片顶对齐）
         left = QVBoxLayout()
         left.setSpacing(8)
-        art = MikuArt(QPixmap(str(asset_path("miku_cutout.png"))), 240, 280, crop_shift_y=0)
+        art = MikuArt(QPixmap(str(asset_path("miku_cutout.png"))), 240, 300, crop_shift_y=0)
         left.addWidget(art, alignment=Qt.AlignmentFlag.AlignTop)
-        moe1 = QLabel("「屏幕翻译，交给未来酱！」(≧▽≦)")
-        moe2 = QLabel("「看不懂的语言，就交给我吧♪」")
-        for lb in (moe1, moe2):
-            lb.setStyleSheet(
-                f"color:#A8F0E8; font-size:17px; font-family:{FONT_HEAVY};"
-                "background-color:rgba(8, 22, 26, 150); border-radius:10px; padding:5px 10px;")
-            lb.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            left.addWidget(lb)
+        # 卖萌标语：合并为一个四行文本块，行距紧凑（文字→颜文字→文字→颜文字）
+        moe = QLabel("「屏幕翻译，交给未来酱！」\n(≧▽≦)\n「看不懂的语言，就交给我吧」\n♪")
+        moe.setStyleSheet(
+            f"color:#A8F0E8; font-size:16px; font-family:{FONT_HEAVY}; line-height:1.25;"
+            "background-color:rgba(8, 22, 26, 150); border-radius:10px; padding:8px 12px;")
+        moe.setMaximumWidth(250)  # 限宽略大于最长行（16px 琥珀 ≈ 244px），防自动换行
+        moe.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        moe.setWordWrap(False)  # 换行只由文本中的 \n 决定
+        left.addWidget(moe)
         content.addLayout(left)
 
-        # 右侧：设置卡片
+        # 右侧：设置卡片（分区布局，占满右侧空间）
         card = QFrame()
         card.setObjectName("card")
-        form = QFormLayout(card)
-        form.setContentsMargins(18, 16, 18, 14)
-        form.setSpacing(12)
-        form.setHorizontalSpacing(14)
+        card_v = QVBoxLayout(card)
+        card_v.setContentsMargins(20, 16, 20, 14)
+        card_v.setSpacing(10)
+
+        sec1 = QLabel("♪ 翻译设置")
+        sec1.setObjectName("sectionTitle")
+        card_v.addWidget(sec1)
+
+        form = QFormLayout()
+        form.setContentsMargins(0, 4, 0, 0)
+        form.setSpacing(13)
+        form.setHorizontalSpacing(10)  # 标签与输入框贴近
         form.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         self.key_edit = QLineEdit(self.cfg.api_key)
         self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.key_edit.setPlaceholderText("sk-...（DeepSeek 开放平台申请）")
-        self.key_edit.setFixedHeight(34)
+        self.key_edit.setFixedHeight(38)
         form.addRow(self._label("API Key"), self.key_edit)
 
         self.model_edit = QLineEdit(self.cfg.model)
         self.model_edit.setPlaceholderText("deepseek-v4-flash")
-        self.model_edit.setFixedHeight(34)
+        self.model_edit.setFixedHeight(38)
         form.addRow(self._label("模型"), self.model_edit)
 
         self.src_combo = QComboBox()
@@ -216,8 +228,8 @@ class MainWindow(QWidget):
         lang_row.addWidget(self.tgt_combo)
         lang_row.addStretch(1)
         for c in (self.src_combo, self.tgt_combo):
-            c.setFixedHeight(34)
-            c.setMinimumWidth(118)  # 两个下拉等宽，避免右侧参差
+            c.setFixedHeight(38)
+            c.setMinimumWidth(120)  # 两个下拉等宽
         form.addRow(self._label("语言"), lang_row)
 
         self.interval_spin = QSpinBox()
@@ -225,21 +237,32 @@ class MainWindow(QWidget):
         self.interval_spin.setSingleStep(100)
         self.interval_spin.setValue(self.cfg.interval_ms)
         self.interval_spin.setSuffix(" ms")
-        self.interval_spin.setFixedHeight(34)
+        self.interval_spin.setFixedHeight(38)
         form.addRow(self._label("刷新间隔"), self.interval_spin)
 
         self.font_spin = QSpinBox()
         self.font_spin.setRange(10, 40)
         self.font_spin.setValue(self.cfg.font_size)
         self.font_spin.setSuffix(" px")
-        self.font_spin.setFixedHeight(34)
+        self.font_spin.setFixedHeight(38)
         form.addRow(self._label("译文字号"), self.font_spin)
 
         self.region_label = QLabel()
         self.region_label.setObjectName("status")
         form.addRow(self._label("翻译区域"), self.region_label)
+        card_v.addLayout(form)
 
-        # 按钮（等宽对齐）
+        # 分隔线
+        line = QFrame()
+        line.setFixedHeight(1)
+        line.setStyleSheet("background-color:rgba(57,197,187,90); border:none;")
+        card_v.addWidget(line)
+
+        sec2 = QLabel("♪ 操作")
+        sec2.setObjectName("sectionTitle")
+        card_v.addWidget(sec2)
+
+        # 按钮（等宽均分，铺满整行）
         btns = QHBoxLayout()
         btns.setSpacing(10)
         self.select_btn = QPushButton("框选区域")
@@ -249,16 +272,17 @@ class MainWindow(QWidget):
         self.stop_btn.setObjectName("danger")
         self.stop_btn.setEnabled(False)
         for b in (self.select_btn, self.start_btn, self.stop_btn):
-            b.setFixedHeight(38)
-            b.setFixedWidth(128)  # 等宽（琥珀字体较宽，防文字挤压）
+            b.setFixedHeight(44)
+            b.setFixedWidth(122)  # 固定等宽，3×122+2×10 恰好铺满卡片整行
             btns.addWidget(b)
         btns.addStretch(1)
-        form.addRow(self._label("操作"), btns)
+        card_v.addLayout(btns)
 
         self.status_label = QLabel("就绪：填写 API Key 并框选区域后开始 (＾▽＾)")
         self.status_label.setObjectName("status")
         self.status_label.setWordWrap(True)  # 长错误信息自动换行，防止撑宽卡片
-        form.addRow("", self.status_label)
+        card_v.addWidget(self.status_label)
+        card_v.addStretch(1)  # 状态区沉底，卡片占满
 
         content.addWidget(card, 1)
         root.addLayout(content, 1)
@@ -266,7 +290,7 @@ class MainWindow(QWidget):
     def _label(self, text: str) -> QLabel:
         lb = QLabel(text)
         lb.setObjectName("formLabel")
-        lb.setMinimumWidth(72)  # 标签列统一宽度，输入框对齐
+        lb.setMinimumWidth(66)  # 标签列统一宽度，输入框对齐
         return lb
 
     def _bind_signals(self):
