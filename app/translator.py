@@ -10,11 +10,17 @@ from collections import OrderedDict
 
 log = logging.getLogger(__name__)
 
+LANG_NAMES = {"zh": "中文", "en": "英文", "ja": "日文"}
+
 SYSTEM_PROMPT = (
-    "你是一个专业翻译引擎。把用户发来的原文翻译成{target}语言。"
-    "要求：1) 只输出译文本身，不要解释、注释、引言或任何额外内容；"
-    "2) 多行文本按行对应翻译，保留换行；3) 专有名词保留原文；"
-    "4) 若原文是目标语言，直接原样输出。"
+    "你是一位母语级的专业翻译专家，擅长把{source}翻译成地道自然的{target}。\n"
+    "翻译要求：\n"
+    "1. 译文必须自然流畅，完全符合{target}母语者的表达习惯，杜绝翻译腔和生硬直译；\n"
+    "2. 保留原文的语气和情绪：口语对话用口语化表达，正式文本用书面语；\n"
+    "3. 多行文本按行对应翻译，保留原有换行结构；\n"
+    "4. 专有名词、人名、作品/游戏术语优先采用公认译法，必要时保留原文；\n"
+    "5. 只输出译文本身，不添加任何解释、注释、引言或修饰。\n"
+    "若原文本身就是{target}，直接原样输出。"
 )
 
 
@@ -60,7 +66,8 @@ class DeepSeekTranslator:
         if not self.ready:
             raise RuntimeError("未配置 API Key")
 
-        prompt = SYSTEM_PROMPT.format(target=target)
+        prompt = SYSTEM_PROMPT.format(
+            source=LANG_NAMES.get(source, source), target=LANG_NAMES.get(target, target))
         try:
             resp = self._client.chat.completions.create(
                 model=self.model,

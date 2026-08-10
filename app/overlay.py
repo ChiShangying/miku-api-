@@ -140,52 +140,74 @@ class TranslationOverlay(QWidget):
             self._render()
 
     # ---------------- 交互 ----------------
+    def _hit_test(self, pos: QPoint) -> str | None:
+        """命中检测：四角优先，其次四边，标题栏中部 move，内容区 None。"""
+        w, h = self.width(), self.height()
+        x, y = pos.x(), pos.y()
+        on_l = x <= HANDLE
+        on_r = x >= w - HANDLE
+        on_t = y <= HANDLE
+        on_b = y >= h - HANDLE
+        if on_l and on_t: return "tl"
+        if on_r and on_t: return "tr"
+        if on_l and on_b: return "bl"
+        if on_r and on_b: return "br"
+        if y < 34:
+            return "move"   # 标题栏整条：拖动窗口
+        if on_l: return "left"
+        if on_r: return "right"
+        if on_b: return "bottom"
+        return None
+
     def mousePressEvent(self, e):
         if e.button() != Qt.MouseButton.LeftButton:
             return
-        pos = e.position().toPoint()
-        if pos.y() < 34:
+        mode = self._hit_test(e.position().toPoint())
+        if mode == "move":
             self._drag_offset = e.globalPosition().toPoint() - self.frameGeometry().topLeft()
             return
-        # 四角缩放
-        w, h = self.width(), self.height()
-        corners = {
-            "tl": (pos.x() <= HANDLE and pos.y() <= HANDLE),
-            "tr": (pos.x() >= w - HANDLE and pos.y() <= HANDLE),
-            "bl": (pos.x() <= HANDLE and pos.y() >= h - HANDLE),
-            "br": (pos.x() >= w - HANDLE and pos.y() >= h - HANDLE),
-        }
-        for name, hit in corners.items():
-            if hit:
-                self._resize_mode = name
-                self._resize_start = e.globalPosition().toPoint()
-                self._resize_geo = self.frameGeometry()
-                return
+        if mode:
+            self._resize_mode = mode
+            self._resize_start = e.globalPosition().toPoint()
+            self._resize_geo = self.frameGeometry()
 
     def mouseMoveEvent(self, e):
         pos = e.globalPosition().toPoint()
         if self._drag_offset:
             self.move(pos - self._drag_offset)
-        elif self._resize_mode and self._resize_start and self._resize_geo:
+            return
+        if self._resize_mode and self._resize_start and self._resize_geo:
             g = self._resize_geo
             dx = pos.x() - self._resize_start.x()
             dy = pos.y() - self._resize_start.y()
-            if self._resize_mode == "br":
-                self.resize(max(self._min_w, g.width() + dx),
-                            max(self._min_h, g.height() + dy))
-            elif self._resize_mode == "bl":
-                self.setGeometry(g.left(), g.top(),
-                                 max(self._min_w, g.width() - dx),
-                                 max(self._min_h, g.height() + dy))
-            elif self._resize_mode == "tr":
-                self.setGeometry(g.left(), g.top() + min(0, dy),
-                                 max(self._min_w, g.width() + dx),
-                                 max(self._min_h, g.height() - dy))
-            elif self._resize_mode == "tl":
-                self.setGeometry(g.left() + min(0, dx), g.top() + min(0, dy),
-                                 max(self._min_w, g.width() - dx),
-                                 max(self._min_h, g.height() - dy))
+            m = self._resize_mode
+            # 八向调整：每边独立伸缩，同时约束最小尺寸
+            l, t, r, b = g.left(), g.top(), g.right(), g.bottom()
+            if m in ("tl", "left"):  l = min(l + dx, r - self._min_w)
+            if m in ("tr", "right"): r = max(r + dx, l + self._min_w)
+            if m in ("bl", "left"):  l = min(l + dx, r - self._min_w)
+            if m in ("br", "right"): r = max(r + dx, l + self._min_w)
+            if m in ("tl", "top"):   t = min(t + dy, b - self._min_h)
+            if m in ("tr", "top"):   t = min(t + dy, b - self._min_h)
+            if m in ("bl", "bottom"): b = max(b + dy, t + self._min_h)
+            if m in ("br", "bottom"): b = max(b + dy, t + self._min_h)
+            self.setGeometry(l, t, r - l, b - t)
             self._outer.setGeometry(0, 0, self.width(), self.height())
+        else:
+            # 悬停光标反馈
+            hit = self._hit_test(e.position().toPoint())
+            cursors = {
+                "left": Qt.CursorShape.SizeHorCursor,
+                "right": Qt.CursorShape.SizeHorCursor,
+                "top": Qt.CursorShape.SizeVerCursor,
+                "bottom": Qt.CursorShape.SizeVerCursor,
+                "tl": Qt.CursorShape.SizeFDiagCursor,
+                "br": Qt.CursorShape.SizeFDiagCursor,
+                "tr": Qt.CursorShape.SizeBDiagCursor,
+                "bl": Qt.CursorShape.SizeBDiagCursor,
+                "move": Qt.CursorShape.SizeAllCursor,
+            }
+            self.setCursor(cursors.get(hit, Qt.CursorShape.ArrowCursor))
 
     def mouseReleaseEvent(self, _):
         if self._resize_mode:
@@ -194,6 +216,7 @@ class TranslationOverlay(QWidget):
             self._resize_geo = None
             self.resize_done.emit(self.width(), self.height())
         self._drag_offset = None
+        self.setCursor(Qt.CursorShape.ArrowCursor)
 
     # ---------------- 右键菜单 ----------------
     def contextMenuEvent(self, e):
