@@ -264,8 +264,8 @@ class MainWindow(QWidget):
     def paintEvent(self, _):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        # 壁纸等比裁剪铺满
-        scaled = self._wallpaper.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatioByCrop,
+        # 壁纸等比裁剪铺满（KeepAspectRatioByExpanding = 铺满后居中裁剪）
+        scaled = self._wallpaper.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding,
                                         Qt.TransformationMode.SmoothTransformation)
         src = QRect((scaled.width() - self.width()) // 2,
                     (scaled.height() - self.height()) // 2,
