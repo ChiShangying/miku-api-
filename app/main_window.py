@@ -4,8 +4,10 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QRect, QPoint
-from PySide6.QtGui import QPixmap, QGuiApplication
+from PySide6.QtCore import Qt, QRect, QPoint, QRectF
+from PySide6.QtGui import (
+    QPixmap, QGuiApplication, QPainter, QPainterPath, QLinearGradient, QColor,
+)
 from PySide6.QtWidgets import (
     QWidget, QApplication, QLabel, QLineEdit, QComboBox, QSpinBox, QPushButton,
     QFormLayout, QVBoxLayout, QHBoxLayout, QFrame, QMessageBox,
@@ -42,6 +44,36 @@ QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border-color:#39C5BB; }
 QComboBox QAbstractItemView { background-color:#0D1F23; border:1px solid #39C5BB; selection-background-color:#39C5BB; selection-color:#06282C; }
 QSpinBox::up-button, QSpinBox::down-button { background-color:#0E3F47; border:none; width:18px; }
 """
+
+
+class MikuArt(QWidget):
+    """初音立绘：圆角裁剪 + 底部青色光晕，自然融入深色卡片。"""
+
+    def __init__(self, pix: QPixmap, parent=None):
+        super().__init__(parent)
+        self._pix = pix
+        self.setFixedSize(170, 300)
+
+    def paintEvent(self, _):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(self.rect()), 18, 18)
+        p.setClipPath(path)
+        # 等比放大填充（居中裁剪，不变形）
+        scaled = self._pix.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                                  Qt.TransformationMode.SmoothTransformation)
+        src = QRectF((scaled.width() - self.width()) / 2,
+                     (scaled.height() - self.height()) / 2,
+                     self.width(), self.height())
+        p.drawPixmap(self.rect(), scaled, src)
+        # 底部青色光晕
+        grad = QLinearGradient(0, self.height() * 0.55, 0, self.height())
+        grad.setColorAt(0, QColor(57, 197, 187, 0))
+        grad.setColorAt(1, QColor(57, 197, 187, 90))
+        p.setClipPath(path)
+        p.fillRect(self.rect(), grad)
 
 
 class MainWindow(QWidget):
@@ -82,27 +114,25 @@ class MainWindow(QWidget):
         left.setFixedWidth(190)
         v = QVBoxLayout(left)
         v.setContentsMargins(10, 10, 10, 10)
-        art = QLabel()
-        pix = QPixmap(str(ASSETS / "miku_01_flower.jpg"))
-        art.setPixmap(pix.scaled(170, 300, Qt.AspectRatioMode.KeepAspectRatio,
-                                 Qt.TransformationMode.SmoothTransformation))
-        art.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        v.addWidget(art)
+        v.setSpacing(8)
+        art = MikuArt(QPixmap(str(ASSETS / "miku_01_flower.jpg")))
+        v.addWidget(art, alignment=Qt.AlignmentFlag.AlignCenter)
         name = QLabel("初音ミク\nHatsune Miku")
         name.setObjectName("title")
         name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         v.addWidget(name)
-        v.addWidget(QLabel("「屏幕翻译，交给未来酱！」"), alignment=Qt.AlignmentFlag.AlignCenter)
+        v.addWidget(QLabel("「屏幕翻译，交给未来酱！」(≧▽≦)"),
+                    alignment=Qt.AlignmentFlag.AlignCenter)
         v.addStretch(1)
         root.addWidget(left)
 
         # ---- 右侧：设置区 ----
         right = QVBoxLayout()
         right.setSpacing(10)
-        title = QLabel("实时屏幕翻译")
+        title = QLabel("✦ 实时屏幕翻译 ✦")
         title.setObjectName("title")
         right.addWidget(title)
-        right.addWidget(QLabel("框选屏幕区域 → 自动OCR识别 → AI实时翻译"))
+        right.addWidget(QLabel("框选区域 → OCR 识别 → AI 翻译 (≧▽≦)"))
 
         card = QFrame()
         card.setObjectName("card")

@@ -16,7 +16,8 @@ ACCENT = QColor("#39C5BB")
 HANDLE = 8                 # 四角手柄尺寸
 BAR_H = 38                 # 工具条高度
 BAR_GAP = 10               # 工具条与选区上边的间距
-PAD_TOP = BAR_H + BAR_GAP  # 窗口顶部扩展（容纳工具条）
+HOT_ZONE = 40              # 工具条上方的悬停热区（鼠标靠近时工具条不消失）
+PAD_TOP = BAR_H + BAR_GAP + HOT_ZONE  # 窗口顶部扩展（工具条 + 热区）
 
 
 class RegionFrame(QWidget):
@@ -74,14 +75,14 @@ class RegionFrame(QWidget):
         lay.addWidget(self.start_btn)
         lay.addWidget(self.stop_btn)
         lay.addWidget(self.close_btn)
-        self._bar.setGeometry(0, 0, 1, 1)  # 尺寸由 _sync_geometry 设置
+        self._bar.setGeometry(0, HOT_ZONE, 1, 1)  # 尺寸由 _sync_geometry 设置
 
     # ---------------- 几何同步 ----------------
     def _sync_geometry(self):
         """窗口 = 选区 + 顶部工具条区。"""
         r = self._region
         self.setGeometry(r.x, r.y - PAD_TOP, r.w, r.h + PAD_TOP)
-        self._bar.setGeometry(0, 0, r.w, BAR_H)
+        self._bar.setGeometry(0, HOT_ZONE, r.w, BAR_H)
         self.size_label.setText(f"{r.w}×{r.h}")
 
     def current_region(self) -> Region:
@@ -152,7 +153,7 @@ class RegionFrame(QWidget):
         g = self.geometry()
         self._region = Region(g.x(), g.y() + PAD_TOP, g.width(),
                               max(1, g.height() - PAD_TOP))
-        self._bar.setGeometry(0, 0, g.width(), BAR_H)
+        self._bar.setGeometry(0, HOT_ZONE, g.width(), BAR_H)
         self.size_label.setText(f"{self._region.w}×{self._region.h}")
         self.update()
 
