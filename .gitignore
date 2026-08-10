@@ -17,3 +17,4 @@ ocr_*_tmp.png
 dist/
 build/
 *.spec
+/Miku屏幕翻译.exe
