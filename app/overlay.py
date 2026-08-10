@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 ACCENT = "#39C5BB"
-BG = "rgba(24, 44, 50, 205)"          # 内容区背景（比之前浅、更透）
+BG = "rgba(24, 44, 50, 240)"          # 内容区背景（高不透明度，文字更清晰）
 ORIGINAL_COLOR = "#B0BEC5"
 TRANSLATED_COLOR = "#7FF4E8"
 MAX_HISTORY = 2                        # 不操作时最多显示条数
@@ -78,7 +78,7 @@ class TranslationOverlay(QWidget):
         lay.setSpacing(6)
 
         title_row = QHBoxLayout()
-        self.title_label = QLabel("✦ Miku 译文")
+        self.title_label = QLabel("✦ Miku 译文 (≧▽≦)♪")
         self.title_label.setObjectName("title")
         hint = QLabel("滚轮回看 ｜ 拖角调宽 ｜ 右键退出")
         hint.setObjectName("title")

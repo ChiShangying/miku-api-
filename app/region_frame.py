@@ -41,6 +41,7 @@ class RegionFrame(QWidget):
         self._geo_start: QRect | None = None
 
         self._build_bar()
+        self._bar.hide()  # 默认隐藏，鼠标悬停时才显现
         self._sync_geometry()
 
     # ---------------- 工具条 ----------------
@@ -154,6 +155,16 @@ class RegionFrame(QWidget):
         self._bar.setGeometry(0, 0, g.width(), BAR_H)
         self.size_label.setText(f"{self._region.w}×{self._region.h}")
         self.update()
+
+    # ---------------- 悬停显示工具条 ----------------
+    def enterEvent(self, e):
+        self._bar.show()
+        self._bar.raise_()
+        super().enterEvent(e)
+
+    def leaveEvent(self, e):
+        self._bar.hide()
+        super().leaveEvent(e)
 
     # ---------------- 绘制 ----------------
     def paintEvent(self, _):
