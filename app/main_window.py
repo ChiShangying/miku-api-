@@ -29,28 +29,31 @@ from .paths import asset_path
 ASSETS = Path(__file__).resolve().parent.parent / "assets"  # 仅开发期兜底，运行用 asset_path()
 
 QSS = """
-QWidget { font-family:"YouYuan","Microsoft YaHei"; font-size:14px; }
-QLabel#title { color:#7FF4E8; font-size:22px; font-weight:bold; }
+QWidget { font-family:"YouYuan","Microsoft YaHei"; font-size:14px; color:#D8F7F4; }
+QLabel#title { font-family:"STHupo","YouYuan","Microsoft YaHei"; color:#7FF4E8;
+               font-size:24px; font-weight:bold; }
 QLabel#subtitle { color:#A8CDD2; font-size:12px; }
 QLabel#status { color:#9BE8E2; font-size:13px; }
-QLabel#formLabel { color:#9BE8E2; font-size:13px; }
-QFrame#card { background-color:rgba(10, 26, 30, 195); border:1px solid #2A6B6E; border-radius:12px; }
-QPushButton { background-color:rgba(14, 63, 71, 220); color:#D8F7F4;
-              border:1px solid #39C5BB; border-radius:8px; padding:8px 18px; }
+QLabel#formLabel { font-family:"YouYuan","Microsoft YaHei"; font-size:13px;
+                   color:#B8F2EC; font-weight:bold; }
+QFrame#card { background-color:rgba(10, 26, 30, 200); border:1px solid #2A6B6E; border-radius:14px; }
+QPushButton { font-family:"STHupo","YouYuan","Microsoft YaHei"; font-size:15px;
+              background-color:rgba(14, 63, 71, 230); color:#D8F7F4;
+              border:2px solid #39C5BB; border-radius:10px; padding:8px 16px; }
 QPushButton:hover { background-color:#39C5BB; color:#06282C; }
 QPushButton:pressed { background-color:#00A0B0; }
 QPushButton:disabled { background-color:#1A2A2E; color:#55777B; border-color:#2A4A4E; }
 QPushButton#primary { background-color:#39C5BB; color:#06282C; font-weight:bold; }
 QPushButton#primary:hover { background-color:#5FE0D5; }
-QPushButton#danger { background-color:rgba(92, 46, 46, 220); border-color:#E57373; }
+QPushButton#danger { background-color:rgba(92, 46, 46, 230); border-color:#E57373; }
 QPushButton#danger:hover { background-color:#E57373; color:#2B0A0A; }
 QPushButton#titleBtn { background:transparent; border:none; border-radius:6px;
                        color:#9BE8E2; font-size:14px; padding:2px 10px; }
 QPushButton#titleBtn:hover { background-color:rgba(57,197,187,90); color:#FFFFFF; }
 QPushButton#titleBtnClose:hover { background-color:#E57373; color:#FFFFFF; }
-QLineEdit, QComboBox, QSpinBox { background-color:rgba(13, 31, 35, 220);
-    border:1px solid #2A6B6E; border-radius:6px; padding:6px 10px; color:#D8F7F4;
-    selection-background-color:#39C5BB; }
+QLineEdit, QComboBox, QSpinBox { font-family:"YouYuan","Microsoft YaHei"; font-size:13px;
+    background-color:rgba(13, 31, 35, 230); border:1.5px solid #2A6B6E; border-radius:8px;
+    padding:6px 10px; color:#EAFBF8; selection-background-color:#39C5BB; }
 QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border-color:#39C5BB; }
 QComboBox QAbstractItemView { background-color:#0D1F23; border:1px solid #39C5BB;
     selection-background-color:#39C5BB; selection-color:#06282C; }
@@ -140,7 +143,7 @@ class MainWindow(QWidget):
         tb.setContentsMargins(14, 0, 6, 0)
         tb_label = QLabel("✦ Miku 屏幕翻译 (≧▽≦)♪")
         tb_label.setObjectName("title")
-        tb_label.setStyleSheet("font-size:16px; color:#7FF4E8;")
+        tb_label.setStyleSheet("font-family:'STHupo','YouYuan'; font-size:16px; color:#7FF4E8;")
         tb.addWidget(tb_label)
         tb.addStretch(1)
         self.settings_btn = QPushButton("设置")
@@ -178,16 +181,19 @@ class MainWindow(QWidget):
         card.setObjectName("card")
         form = QFormLayout(card)
         form.setContentsMargins(18, 16, 18, 14)
-        form.setSpacing(11)
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form.setSpacing(12)
+        form.setHorizontalSpacing(14)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         self.key_edit = QLineEdit(self.cfg.api_key)
         self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.key_edit.setPlaceholderText("sk-...（DeepSeek 开放平台申请）")
+        self.key_edit.setFixedHeight(34)
         form.addRow(self._label("API Key"), self.key_edit)
 
         self.model_edit = QLineEdit(self.cfg.model)
         self.model_edit.setPlaceholderText("deepseek-v4-flash")
+        self.model_edit.setFixedHeight(34)
         form.addRow(self._label("模型"), self.model_edit)
 
         self.src_combo = QComboBox()
@@ -199,10 +205,13 @@ class MainWindow(QWidget):
             self.tgt_combo.addItem(name, code)
         self.tgt_combo.setCurrentIndex(max(0, list(LANGS).index(self.cfg.target_lang)))
         lang_row = QHBoxLayout()
+        lang_row.setSpacing(8)
         lang_row.addWidget(self.src_combo)
         lang_row.addWidget(QLabel("→"), alignment=Qt.AlignmentFlag.AlignCenter)
         lang_row.addWidget(self.tgt_combo)
         lang_row.addStretch(1)
+        for c in (self.src_combo, self.tgt_combo):
+            c.setFixedHeight(34)
         form.addRow(self._label("语言"), lang_row)
 
         self.interval_spin = QSpinBox()
@@ -210,20 +219,23 @@ class MainWindow(QWidget):
         self.interval_spin.setSingleStep(100)
         self.interval_spin.setValue(self.cfg.interval_ms)
         self.interval_spin.setSuffix(" ms")
+        self.interval_spin.setFixedHeight(34)
         form.addRow(self._label("刷新间隔"), self.interval_spin)
 
         self.font_spin = QSpinBox()
         self.font_spin.setRange(10, 40)
         self.font_spin.setValue(self.cfg.font_size)
         self.font_spin.setSuffix(" px")
+        self.font_spin.setFixedHeight(34)
         form.addRow(self._label("译文字号"), self.font_spin)
 
         self.region_label = QLabel()
         self.region_label.setObjectName("status")
         form.addRow(self._label("翻译区域"), self.region_label)
 
-        # 按钮
+        # 按钮（等宽对齐）
         btns = QHBoxLayout()
+        btns.setSpacing(10)
         self.select_btn = QPushButton("📌 框选区域")
         self.start_btn = QPushButton("▶ 开始翻译")
         self.start_btn.setObjectName("primary")
@@ -231,8 +243,11 @@ class MainWindow(QWidget):
         self.stop_btn.setObjectName("danger")
         self.stop_btn.setEnabled(False)
         for b in (self.select_btn, self.start_btn, self.stop_btn):
+            b.setFixedHeight(38)
+            b.setFixedWidth(104)  # 等宽，整齐
             btns.addWidget(b)
-        form.addRow("", btns)
+        btns.addStretch(1)
+        form.addRow(self._label("操作"), btns)
 
         self.status_label = QLabel("就绪：填写 API Key 并框选区域后开始 (＾▽＾)")
         self.status_label.setObjectName("status")
@@ -244,6 +259,7 @@ class MainWindow(QWidget):
     def _label(self, text: str) -> QLabel:
         lb = QLabel(text)
         lb.setObjectName("formLabel")
+        lb.setMinimumWidth(72)  # 标签列统一宽度，输入框对齐
         return lb
 
     def _bind_signals(self):
